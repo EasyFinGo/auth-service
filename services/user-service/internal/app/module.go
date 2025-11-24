@@ -20,6 +20,7 @@ var Module = fx.Options(
 	fx.Provide(config.LoadConfig),
 	fx.Provide(database.NewPostgresDB),
 	fx.Provide(health.NewChecker),
+	fx.Provide(newRouter),
 	fx.Invoke(router.SetupRoutes),
 	fx.Invoke(registerHooks),
 )
