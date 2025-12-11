@@ -1,12 +1,11 @@
 package main
 
 import (
-	"EasyFinGo/internal/app"
+	app "EasyFinGo/internal"
+
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	_ "go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
-	_ "go.uber.org/zap"
 )
 
 func main() {

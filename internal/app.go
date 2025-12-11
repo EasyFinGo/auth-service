@@ -1,11 +1,16 @@
 package app
 
 import (
-	"EasyFinGo/internal/config"
-	"EasyFinGo/internal/database"
-	"EasyFinGo/internal/router"
+	"EasyFinGo/internal/app/health"
+	"EasyFinGo/internal/app/router"
+	"EasyFinGo/internal/pkg/config"
+	"EasyFinGo/internal/pkg/database"
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -15,6 +20,8 @@ import (
 var Module = fx.Options(
 	fx.Provide(config.LoadConfig),
 	fx.Provide(database.NewPostgresDB),
+	fx.Provide(health.NewChecker),
+	fx.Provide(newRouter),
 	fx.Invoke(router.SetupRoutes),
 	fx.Invoke(registerHooks),
 )
@@ -38,15 +45,26 @@ func registerHooks(
 	db *gorm.DB,
 	logger *zap.Logger,
 ) {
+	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			addr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+			listener, err := net.Listen("tcp", addr)
+			if err != nil {
+				return fmt.Errorf("failed to bind to %s: %w", addr, err)
+			}
 			logger.Info("Starting server",
 				zap.String("address", addr),
 				zap.String("environment", cfg.Server.Env))
 
 			go func() {
-				if err := router.Run(addr); err != nil {
+				if err := srv.Serve(listener); err != nil {
 					logger.Fatal("failed to start server", zap.Error(err))
 				}
 			}()
@@ -56,6 +74,12 @@ func registerHooks(
 		OnStop: func(ctx context.Context) error {
 			logger.Info("Shutting down server gracefully")
 
+			shutDownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			if err := srv.Shutdown(shutDownCtx); err != nil {
+				logger.Error("Server shutdown error", zap.Error(err))
+			}
 			sqlDB, err := db.DB()
 			if err != nil {
 				return err

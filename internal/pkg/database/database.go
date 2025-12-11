@@ -1,14 +1,15 @@
 package database
 
 import (
-	"EasyFinGo/internal/config"
-	"EasyFinGo/internal/model"
+	"EasyFinGo/internal/app/auth/model"
+	"EasyFinGo/internal/pkg/config"
 	"fmt"
+	"log"
+	"time"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"time"
 )
 
 const (
@@ -21,15 +22,15 @@ const (
 	ErrMigrationFailed    = "failed to run migration"
 )
 
-func NewPostgresDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
+func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host,
-		cfg.Port,
-		cfg.User,
-		cfg.Password,
-		cfg.DBName,
-		cfg.SSLMode,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.DBName,
+		cfg.Database.SSLMode,
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -48,9 +49,9 @@ func NewPostgresDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("%s: %w", ErrDataBaseInstance, err)
 	}
 
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifeTime)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLifeTime)
 
 	log.Println(LogDataBaseConnected)
 	return db, nil
