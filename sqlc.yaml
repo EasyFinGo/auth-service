@@ -1,0 +1,17 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    queries: "internal/pkg/db/queries.sql"                    # ← create this file if you don't have it yet
+    schema: "migrations"                      # ← your existing migrations folder
+    gen:
+      go:
+        package: "db"
+        out: "internal/pkg/db"                    # change this if you want generated code elsewhere
+        sql_package: "pgx/v5"                 # very important for pgx/v5
+        emit_json_tags: true
+        emit_interface: true                  # optional but useful
+        emit_exact_table_names: false
+        overrides:                            # optional: if you have naming conflicts
+          - db_type: "timestamp with time zone"
+            go_type: "time.Time"
