@@ -1,3 +1,2 @@
-DROP TABLE IF EXISTS user_consents;
 DROP TABLE IF EXISTS user_addresses;
 DROP TABLE IF EXISTS users;
