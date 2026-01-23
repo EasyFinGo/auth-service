@@ -1,23 +1,19 @@
 package main
 
 import (
-	app "EasyFinGo/internal"
-
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
-	"go.uber.org/zap"
+	"EasyFinGo/internal/app/auth/repositories/postgres"
+	"EasyFinGo/internal/app/auth/router"
+	"EasyFinGo/internal/app/auth/services"
+	"EasyFinGo/internal/db"
 )
 
 func main() {
-	fx.New(
-		fx.Provide(newLogger),
-		app.Module,
-		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log}
-		}),
-	).Run()
-}
+	db.Init()
+	defer db.Close()
 
-func newLogger() (*zap.Logger, error) {
-	return zap.NewDevelopment()
+	repo := postgres.NewUserRepository(db.DB)
+
+	svc := services.NewRegistrationService(repo)
+	r := router.Setup(svc)
+	r.Run(":8080")
 }
